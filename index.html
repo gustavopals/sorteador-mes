@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calendário de Revezamento</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            height: 100vh;
+            margin: 0;
+            background-color: #f0f0f0;
+        }
+        .container {
+            width: 90%;
+            max-width: 800px;
+            margin-top: 20px;
+            text-align: center;
+        }
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            margin-top: 20px;
+        }
+        table, th, td {
+            border: 1px solid #ccc;
+        }
+        th, td {
+            padding: 10px;
+            text-align: center;
+        }
+        th {
+            background-color: #eee;
+        }
+        #buttons {
+            margin-top: 20px;
+        }
+        button {
+            padding: 10px 20px;
+            margin: 5px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>Calendário de Revezamento</h1>
+
+    <label for="mes">Mês:</label>
+    <select id="mes">
+        <option value="0">Janeiro</option>
+        <option value="1">Fevereiro</option>
+        <option value="2">Março</option>
+        <option value="3">Abril</option>
+        <option value="4">Maio</option>
+        <option value="5">Junho</option>
+        <option value="6">Julho</option>
+        <option value="7">Agosto</option>
+        <option value="8">Setembro</option>
+        <option value="9">Outubro</option>
+        <option value="10">Novembro</option>
+        <option value="11">Dezembro</option>
+    </select>
+
+    <label for="ano">Ano:</label>
+    <input type="number" id="ano" value="2024">
+
+    <div id="form-participantes">
+        <h2>Adicionar Participantes</h2>
+        <input type="text" id="participante" placeholder="Nome do participante">
+        <button onclick="adicionarParticipante()">Adicionar</button>
+        <ul id="lista-participantes"></ul>
+    </div>
+
+    <div id="buttons">
+        <button onclick="gerarCalendario()">Gerar Calendário</button>
+        <button onclick="imprimirCalendario()">Imprimir Calendário</button>
+    </div>
+
+    <div id="calendario-imprimir">
+        <div id="calendario"></div>
+    </div>
+</div>
+
+<script>
+let participantes = [];
+
+document.getElementById('participante').addEventListener('keypress', function (e) {
+    if (e.key === 'Enter') {
+        adicionarParticipante();
+    }
+});
+
+function adicionarParticipante() {
+    const participante = document.getElementById('participante').value.trim();
+    if (participante && !participantes.includes(participante)) {
+        participantes.push(participante);
+        document.getElementById('participante').value = '';
+        atualizarListaParticipantes();
+    }
+}
+
+function atualizarListaParticipantes() {
+    const lista = document.getElementById('lista-participantes');
+    lista.innerHTML = '';
+    participantes.forEach(participante => {
+        const li = document.createElement('li');
+        li.textContent = participante;
+        lista.appendChild(li);
+    });
+}
+
+function gerarCalendario() {
+    if (participantes.length < 2) {
+        alert('É necessário pelo menos 2 participantes.');
+        return;
+    }
+
+    const mes = parseInt(document.getElementById("mes").value);
+    const ano = parseInt(document.getElementById("ano").value);
+    const diasTrabalho = getDiasTrabalho(ano, mes);
+    const escala = sortearDuplas(diasTrabalho.length);
+    atualizarCalendario(diasTrabalho, escala, mes, ano);
+}
+
+function getDiasTrabalho(ano, mes) {
+    let diasTrabalho = [];
+    let date = new Date(ano, mes, 1);
+    while (date.getMonth() === mes) {
+        let day = date.getDay();
+        if (day >= 1 && day <= 5) { // Segunda a Sexta
+            diasTrabalho.push(new Date(date));
+        }
+        date.setDate(date.getDate() + 1);
+    }
+    return diasTrabalho;
+}
+
+function sortearDuplas(numDias) {
+    let escalaSorteada = [];
+    let participantesRodizio = [...participantes];
+    let participantesUltimoDia = [];
+
+    for (let i = 0; i < numDias; i++) {
+        let participantesDisponiveis = participantesRodizio.filter(p => !participantesUltimoDia.includes(p));
+        
+        if (participantesDisponiveis.length < 2) {
+            participantesRodizio = [...participantes];
+            participantesDisponiveis = participantesRodizio.filter(p => !participantesUltimoDia.includes(p));
+        }
+
+        let participante1 = participantesDisponiveis.splice(Math.floor(Math.random() * participantesDisponiveis.length), 1)[0];
+        participantesRodizio = participantesRodizio.filter(p => p !== participante1);
+        
+        let participante2 = participantesDisponiveis.splice(Math.floor(Math.random() * participantesDisponiveis.length), 1)[0];
+        participantesRodizio = participantesRodizio.filter(p => p !== participante2);
+        
+        escalaSorteada.push([participante1, participante2]);
+        participantesUltimoDia = [participante1, participante2];
+    }
+    
+    return escalaSorteada;
+}
+
+function atualizarCalendario(diasTrabalho, escala, mes, ano) {
+    const calendarioDiv = document.getElementById("calendario");
+    const meses = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
+    let calendarioHTML = `<h2>Calendário de Revezamento - ${meses[mes]} ${ano}</h2>`;
+    calendarioHTML += "<table><tr><th>Data</th><th>Participante 1</th><th>Participante 2</th></tr>";
+    
+    for (let i = 0; i < diasTrabalho.length; i++) {
+        calendarioHTML += `<tr><td>${diasTrabalho[i].toLocaleDateString()}</td><td>${escala[i][0]}</td><td>${escala[i][1]}</td></tr>`;
+    }
+    
+    calendarioHTML += "</table>";
+    calendarioDiv.innerHTML = calendarioHTML;
+}
+
+function imprimirCalendario() {
+    const calendarioImprimir = document.getElementById("calendario-imprimir").innerHTML;
+    const printWindow = window.open('', '', 'height=700,width=900');
+    printWindow.document.write('<html><head><title>Calendário de Revezamento</title>');
+    printWindow.document.write('<style>');
+    printWindow.document.write('body { font-family: Arial, sans-serif; }');
+    printWindow.document.write('table { border-collapse: collapse; width: 100%; margin-top: 20px; }');
+    printWindow.document.write('table, th, td { border: 1px solid #ccc; }');
+    printWindow.document.write('th, td { padding: 10px; text-align: center; }');
+    printWindow.document.write('th { background-color: #eee; }');
+    printWindow.document.write('</style>');
+    printWindow.document.write('</head><body>');
+    printWindow.document.write(calendarioImprimir);
+    printWindow.document.write('</body></html>');
+    printWindow.document.close();
+    printWindow.print();
+}
+</script>
+
+</body>
+</html>
